@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    volumes:
+      - static_volume:/opt/app/static/
+    env_file:
+      - ./app/config/.env
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./etc/postgres/default-init.sql:/docker-entrypoint-initdb.d/default-init.sql
+    env_file:
+      - ./app/config/.env
+
+  nginx:
+    container_name: nginx
+    image: nginx:alpine
+    volumes:
+      - ./etc/nginx:/etc/nginx/conf.d:ro
+      - ./data:/data/:ro
+      - static_volume:/app/static/
+      - media_volume:/app/media/
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
