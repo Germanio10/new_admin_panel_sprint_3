@@ -38,34 +38,28 @@ class PostgresExtractor:
                             ORDER BY updated_at
                             LIMIT 5;
                             """
-            data = list(self._fetch_data(cursor, person_query, ()))
-            if data:
-                last_processed_date = max(entry['updated_at'].isoformat() for entry in data)
+            persons_data = self._fetch_data(cursor, person_query, ())
+            if persons_data:
+                last_processed_date = max(entry['updated_at'].isoformat() for entry in persons_data)
                 self.state_storage.set_state(self.state_key, last_processed_date)
-            yield data
+            yield persons_data
 
     @backoff()
     def extract_films_with_persons(self, person_ids):
-        last_processed_date = self.state_storage.get_state(self.state_key) or '1970-01-01T00:00:00Z'
-
         with self.connection.cursor() as cursor:
             film_person_query = """SELECT fw.id, fw.updated_at
                                     FROM content.film_work fw
                                     LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id
-                                    WHERE pfw.person_id IN ANY(%s)
+                                    WHERE pfw.person_id IN %s
                                     ORDER BY fw.updated_at
                                     LIMIT 5;
                                 """
-            films_data = list(self._fetch_data(cursor, film_person_query, (person_ids),))
-            if films_data:
-                last_processed_date = max(entry['updated_at'].isoformat() for entry in films_data)
-                self.state_storage.set_state(self.state_key, last_processed_date)
-            yield films_data
+            cursor.execute(film_person_query, (tuple(person_ids), ))
+            person_film_data = cursor.fetchmany(self.chunk_size)
+            yield person_film_data
 
     @backoff()
     def extract_films(self, film_ids):
-        last_processed_date = self.state_storage.get_state(self.state_key) or '1970-01-01T00:00:00Z'
-
         with self.connection.cursor() as cursor:
             film_query = """SELECT
                             fw.id as fw_id,
@@ -86,10 +80,8 @@ class PostgresExtractor:
                         LEFT JOIN content.genre g ON g.id = gfw.genre_id
                         WHERE fw.id IN %s
                         """
-            films_data = list(self._fetch_data(cursor, film_query, (tuple(film_ids),)))
-            if films_data:
-                last_processed_date = max(entry['updated_at'].isoformat() for entry in films_data)
-                self.state_storage.set_state(self.state_key, last_processed_date)
+            cursor.execute(film_query, (tuple(film_ids), ))
+            films_data = cursor.fetchmany(self.chunk_size)
             yield films_data
 
 # Оставляем остальной код без изменений
@@ -97,4 +89,17 @@ state_file_path = 'state.json'
 json_file_storage = JsonFileStorage(state_file_path)
 stage_storage_instance = State(storage=json_file_storage)
 
-ps = PostgresExtractor(100, stage_storage_instance)
+ps = PostgresExtractor(1, stage_storage_instance)
+
+for data in ps.extract_persons():
+    print(data)
+
+person_ids = [person['id'] for person in data]
+
+for data in ps.extract_films_with_persons(person_ids):
+    print(data)
+
+film_ids = [film['id'] for film in data]
+
+for data in ps.extract_films(film_ids):
+    print(data)
