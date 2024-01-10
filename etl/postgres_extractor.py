@@ -140,17 +140,11 @@ class Transformer:
                     'director': row['director'] if row['role'] == 'director' else '',
                     'actors_names': row['full_name'] if row['role'] == 'actor' else '',
                     'writers_names': row['full_name'] if row['role'] == 'writer' else '',
-                    'actors': {(row['id'], row['full_name'])} if row['role'] == 'actor' else [],
-                    'wtiters': {(row['id'], row['full_name'])} if row['role'] == 'writer' else [],
+                    'actors': [{'id': row['id'], 'full_name': row['full_name']}] if row['role'] == 'actor' else [],
+                    'writers': [{'id': row['id'], 'full_name': row['full_name']}] if row['role'] == 'writer' else [],
                 }
                 butch.append(filmwork)
         print(butch)
-                
-
-
-# class Loader:
-    
-#     def 
 
 ts = Transformer(ps)
 ts.transform()
