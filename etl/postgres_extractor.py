@@ -2,6 +2,8 @@ import psycopg2
 from psycopg2.extras import DictCursor
 from backoff import backoff
 from state import State, JsonFileStorage
+import json
+
 
 dsl = {
     'dbname': 'movies_database',
@@ -36,7 +38,7 @@ class PostgresExtractor:
                             FROM content.person
                             WHERE updated_at >= '{last_processed_date}'
                             ORDER BY updated_at
-                            LIMIT 5;
+                            LIMIT 100;
                             """
             persons_data = self._fetch_data(cursor, person_query, ())
             if persons_data:
@@ -52,25 +54,26 @@ class PostgresExtractor:
                                     LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id
                                     WHERE pfw.person_id IN %s
                                     ORDER BY fw.updated_at
-                                    LIMIT 5;
+                                    LIMIT 100;
                                 """
             cursor.execute(film_person_query, (tuple(person_ids), ))
             person_film_data = cursor.fetchmany(self.chunk_size)
             yield person_film_data
+            
 
     @backoff()
     def extract_films(self, film_ids):
         with self.connection.cursor() as cursor:
             film_query = """SELECT
-                            fw.id as fw_id,
-                            fw.title,
-                            fw.description,
-                            fw.rating,
-                            fw.type,
-                            fw.created_at,
-                            fw.updated_at,
-                            pfw.role,
-                            p.id,
+                            fw.id as fw_id, 
+                            fw.title, 
+                            fw.description, 
+                            fw.rating, 
+                            fw.type, 
+                            fw.created_at, 
+                            fw.updated_at, 
+                            pfw.role, 
+                            p.id, 
                             p.full_name,
                             g.name
                         FROM content.film_work fw
@@ -78,28 +81,76 @@ class PostgresExtractor:
                         LEFT JOIN content.person p ON p.id = pfw.person_id
                         LEFT JOIN content.genre_film_work gfw ON gfw.film_work_id = fw.id
                         LEFT JOIN content.genre g ON g.id = gfw.genre_id
-                        WHERE fw.id IN %s
+                        WHERE fw.id IN %s;
                         """
             cursor.execute(film_query, (tuple(film_ids), ))
             films_data = cursor.fetchmany(self.chunk_size)
             yield films_data
 
-# Оставляем остальной код без изменений
+
 state_file_path = 'state.json'
 json_file_storage = JsonFileStorage(state_file_path)
 stage_storage_instance = State(storage=json_file_storage)
 
 ps = PostgresExtractor(1, stage_storage_instance)
 
-for data in ps.extract_persons():
-    print(data)
+# ps_data = ps.extract_persons()
+# for data in ps.extract_persons():
+#     print(data)
 
-person_ids = [person['id'] for person in data]
+# person_ids = [person['id'] for person in data]
 
-for data in ps.extract_films_with_persons(person_ids):
-    print(data)
+# for data in ps.extract_films_with_persons(person_ids):
+#     print(data)
 
-film_ids = [film['id'] for film in data]
+# film_ids = [film['id'] for film in data]
 
-for data in ps.extract_films(film_ids):
-    print(data)
+# for data in ps.extract_films(film_ids):
+#     print(data)
+
+
+class Transformer:
+    def __init__(self, data: PostgresExtractor):
+        self.data = data
+
+    def _get_persons(self):
+        person_ids = []
+        for item in self.data.extract_persons():
+            for person_id in item:
+                person_ids.append(person_id['id'])
+        return person_ids
+
+    def _get_films_with_persons(self):
+        film_ids = []
+        for item in self.data.extract_films_with_persons(self._get_persons()):
+            for film_id in item:
+                film_ids.append(film_id['id'])
+        return film_ids
+
+    def transform(self):
+        butch = []
+        for film in self.data.extract_films(self._get_films_with_persons()):
+            for row in film:
+                filmwork = {
+                    'id': row['fw_id'],
+                    'imdb_rating': row['rating'],
+                    'genre': row['name'],
+                    'title': row['title'],
+                    'description': row['description'],
+                    'director': row['director'] if row['role'] == 'director' else '',
+                    'actors_names': row['full_name'] if row['role'] == 'actor' else '',
+                    'writers_names': row['full_name'] if row['role'] == 'writer' else '',
+                    'actors': {(row['id'], row['full_name'])} if row['role'] == 'actor' else [],
+                    'wtiters': {(row['id'], row['full_name'])} if row['role'] == 'writer' else [],
+                }
+                butch.append(filmwork)
+        print(butch)
+                
+
+
+# class Loader:
+    
+#     def 
+
+ts = Transformer(ps)
+ts.transform()
