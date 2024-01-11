@@ -1,9 +1,6 @@
-from elasticsearch import Elasticsearch
-
-es = Elasticsearch(hosts='http://127.0.0.1:9200/')
-
-
 def create_movies_index(es):
+    """Создание схемы для Elasticsearch"""
+
     index_name = "movies"
 
     movies_mapping = {
@@ -68,6 +65,3 @@ def create_movies_index(es):
     }
 
     es.indices.create(index=index_name, body=movies_mapping)
-
-
-create_movies_index(es)

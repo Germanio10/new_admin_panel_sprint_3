@@ -1,21 +1,12 @@
 import psycopg2
 from psycopg2.extras import DictCursor
 from backoff import backoff
-from state import State, JsonFileStorage
-from elasticsearch import Elasticsearch, helpers
-from elasticsearch.helpers import BulkIndexError
+from state import State
+from settings import dsl
 
-es = Elasticsearch(hosts='http://127.0.0.1:9200/')
-
-dsl = {
-    'dbname': 'movies_database',
-    'user': 'app',
-    'password': '123qwe',
-    'host': '127.0.0.1',
-    'port': 5432
-}
 
 class PostgresExtractor:
+    "Получение данных из БД с записью крайней даты в состояние"
     def __init__(self, chunk_size, state_storage: State):
         self.connection = psycopg2.connect(**dsl, cursor_factory=DictCursor)
         self.chunk_size = chunk_size
@@ -68,69 +59,3 @@ class PostgresExtractor:
                 last_processed_date = max(entry['updated_at'].isoformat() for entry in persons_data)
                 self.state_storage.set_state(self.state_key, last_processed_date)
             yield persons_data
-
-state_file_path = 'state.json'
-json_file_storage = JsonFileStorage(state_file_path)
-stage_storage_instance = State(storage=json_file_storage)
-
-ps = PostgresExtractor(1, stage_storage_instance)
-# for item in ps.extract_films_info():
-#     for i in item:
-#         print(dict(i))
-
-
-
-class Transformer:
-    def __init__(self, data: PostgresExtractor):
-        self.data = data
-
-    def _get_film_info(self):
-        films_info_lst = []
-        for objects in self.data.extract_films_info():
-            for film_info in objects:
-                films_info_lst.append(film_info)
-        return films_info_lst
-
-    def transform(self):
-        butch = []
-        for row in self._get_film_info():
-            filmwork = {
-                    'id': row['id'],
-                    'imdb_rating': row['rating'],
-                    'genre': row['genres'],
-                    'title': row['title'],
-                    'description': row['description'],
-                    'director': next((person['person_name'] for person in row.get('persons', []) if person['person_role'] == 'director'), ''),
-                    'actors_names': [person['person_name'] for person in row.get('persons', []) if person['person_role'] == 'actor'],
-                    'writers_names': [person['person_name'] for person in row.get('persons', []) if person['person_role'] == 'writer'],
-                    'actors': [{'id': person['person_id'], 'name': person['person_name']} for person in row.get('persons', []) if person['person_role'] == 'actor'],
-                    'writers': [{'id': person['person_id'], 'name': person['person_name']} for person in row.get('persons', []) if person['person_role'] == 'writer'],
-                }
-            butch.append(filmwork)
-        return butch
-        
-
-ts = Transformer(ps)
-data = ts.transform()
-
-
-class Loader:
-    
-    def load(self, data):
-        actions = [
-            {
-                '_index': 'movies',
-                '_id': row['id'],
-                '_source': row,
-            }
-            for row in data
-        ]
-        try:
-            helpers.bulk(es, actions)
-        except BulkIndexError as e:
-            for error in e.errors:
-                print(error)
-            raise e
-
-ld = Loader()
-ld.load(data)
