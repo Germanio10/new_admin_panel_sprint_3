@@ -1,3 +1,6 @@
+from logs.logging_config import logger
+
+
 def create_movies_index(es):
     """Создание схемы для Elasticsearch"""
 
@@ -63,5 +66,7 @@ def create_movies_index(es):
             }
         }
     }
-
-    es.indices.create(index=index_name, body=movies_mapping)
+    try:
+        es.indices.create(index=index_name, body=movies_mapping)
+    except Exception as e:
+        logger.error(e)

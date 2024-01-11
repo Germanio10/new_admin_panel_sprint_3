@@ -1,7 +1,7 @@
 from elasticsearch import helpers
 from elasticsearch.helpers import BulkIndexError
-from settings import es
-from logging_config import logger
+from settings.settings import es
+from logs.logging_config import logger
 
 
 class Loader:

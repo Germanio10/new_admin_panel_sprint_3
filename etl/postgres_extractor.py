@@ -1,10 +1,10 @@
 import psycopg2
 from psycopg2.extras import DictCursor
 from backoff import backoff
-from state import State
-from settings import dsl
+from state.state import State
+from settings.settings import dsl
 from typing import List, Dict
-from logging_config import logger
+from logs.logging_config import logger
 
 
 START_UNIX_TIME = '1970-01-01T00:00:00Z'

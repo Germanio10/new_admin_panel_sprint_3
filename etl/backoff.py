@@ -1,7 +1,7 @@
 from functools import wraps
 import time
 import psycopg2.errors
-from logging_config import logger
+from logs.logging_config import logger
 
 
 def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):

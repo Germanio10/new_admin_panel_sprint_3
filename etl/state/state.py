@@ -1,6 +1,6 @@
 from typing import Any, Dict
 import json
-from base_storage import BaseStorage
+from state.base_storage import BaseStorage
 
 
 class JsonFileStorage(BaseStorage):

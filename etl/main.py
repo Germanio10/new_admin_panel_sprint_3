@@ -1,11 +1,11 @@
 from postgres_extractor import PostgresExtractor
 from transformer import Transformer
 from loader import Loader
-from state import JsonFileStorage, State
+from state.state import JsonFileStorage, State
 import time
 from create_index import create_movies_index
-from settings import es
-from logging_config import logger
+from settings.settings import es
+from logs.logging_config import logger
 
 
 CHUNK_SIZE = 100
