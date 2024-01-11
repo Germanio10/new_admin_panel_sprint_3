@@ -1,11 +1,13 @@
 from postgres_extractor import PostgresExtractor
+from typing import Dict, List
 
 
 class Transformer:
     """Преобразование данных в формат для Elasticsearch"""
-    def __init__(self, data: PostgresExtractor):
+    def __init__(self, data: PostgresExtractor) -> None:
         self.data = data
 
+    """Обработка данных для трансформации"""
     def _get_film_info(self):
         films_info_lst = []
         for objects in self.data.extract_films_info():
@@ -13,7 +15,8 @@ class Transformer:
                 films_info_lst.append(film_info)
         return films_info_lst
 
-    def transform(self):
+    """Трансформация данных для загрузки"""
+    def transform(self) -> List[Dict]:
         butch = []
         for row in self._get_film_info():
             filmwork = {

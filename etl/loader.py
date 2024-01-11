@@ -1,6 +1,7 @@
 from elasticsearch import helpers
 from elasticsearch.helpers import BulkIndexError
 from settings import es
+from logging_config import logger
 
 
 class Loader:
@@ -18,6 +19,4 @@ class Loader:
         try:
             helpers.bulk(es, actions)
         except BulkIndexError as e:
-            for error in e.errors:
-                print(error)
-            raise e
+            logger.error(e)
