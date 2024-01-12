@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    volumes:
+      - static_volume:/opt/app/static/
+    env_file:
+      - ./app/config/.env
+    depends_on:
+      - db
+      - postgres_to_es
+
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./etc/postgres/default-init.sql:/docker-entrypoint-initdb.d/default-init.sql
+    env_file:
+      - ./app/config/.env
+  
+  postgres_to_es:
+    container_name: postgres_to_es
+    build: 
+      context: ./postgres_to_es
+    env_file:
+      - ./app/config/.env
+    depends_on:
+      - db
+      - elasticsearch
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+  nginx:
+    container_name: nginx
+    image: nginx:alpine
+    volumes:
+      - ./etc/nginx:/etc/nginx/conf.d:ro
+      - ./data:/data/:ro
+      - static_volume:/app/static/
+      - media_volume:/app/media/
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

@@ -7,7 +7,6 @@ from create_index import create_movies_index
 from settings.settings import es
 from logs.logging_config import logger
 
-
 CHUNK_SIZE = 100
 
 if __name__ == '__main__':
