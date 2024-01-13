@@ -2,11 +2,14 @@ FROM python:3.10
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y ncat
+
 COPY requirements.txt requirements.txt
 
-RUN pip install --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt --no-cache-dir
 
 COPY . .
 
-CMD [ "python3", "main.py" ]
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
