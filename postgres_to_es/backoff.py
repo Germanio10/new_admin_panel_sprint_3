@@ -1,10 +1,9 @@
 from functools import wraps
 import time
-import psycopg2.errors
 from logs.logging_config import logger
 
 
-def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
+def backoff(exceptions, start_sleep_time=0.1, factor=2, border_sleep_time=10):
     """
     Функция для повторного выполнения функции через некоторое время,
     если возникла ошибка. Использует наивный экспоненциальный рост времени повтора (factor) до граничного времени ожидания (border_sleep_time)
@@ -28,10 +27,7 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10):
                     time.sleep(current_time)
                 try:
                     return func(*args, **kwargs)
-                except (
-                    psycopg2.errors.ConnectionException,
-                    psycopg2.errors.ConnectionFailure,
-                ) as e:
+                except exceptions as e:
                     tries += 1
                     logger.error(str(e))
         return inner

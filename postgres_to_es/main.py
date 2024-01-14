@@ -20,6 +20,5 @@ if __name__ == '__main__':
             transformer = Transformer(extractor)
             loader = Loader()
             loader.load(transformer.transform())
-            time.sleep(60)
     except Exception as e:
         logger.critical(e)

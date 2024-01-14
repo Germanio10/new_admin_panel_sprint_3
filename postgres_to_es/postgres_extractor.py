@@ -27,7 +27,8 @@ class PostgresExtractor:
             self.state_storage.set_state(self.state_key, last_processed_date)
         return data
 
-    @backoff()
+    @backoff(exceptions=[psycopg2.errors.ConnectionException,
+                         psycopg2.errors.ConnectionFailure,])
     def extract_films_info(self) -> List[Dict]:
         """Извлечение данных из бд"""
 
@@ -58,7 +59,7 @@ class PostgresExtractor:
                                     LEFT JOIN content.person p ON p.id = pfw.person_id
                                     LEFT JOIN content.genre_film_work gfw ON gfw.film_work_id = fw.id
                                     LEFT JOIN content.genre g ON g.id = gfw.genre_id
-                                    WHERE fw.updated_at > '{last_processed_date}'
+                                    WHERE fw.updated_at >= '{last_processed_date}'
                                     GROUP BY fw.id
                                     ORDER BY fw.updated_at
                                     LIMIT 100;"""
