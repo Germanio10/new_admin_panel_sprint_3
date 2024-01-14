@@ -2,6 +2,7 @@ import os
 from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 
@@ -12,5 +13,5 @@ dsl = {
     'user': os.getenv('DB_USER'),
     'password': os.getenv('DB_PASSWORD'),
     'host': 'db',
-    'port': os.getenv('DB_PORT')
+    'port': os.getenv('DB_PORT'),
 }
