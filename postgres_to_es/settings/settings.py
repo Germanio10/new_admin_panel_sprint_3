@@ -2,6 +2,7 @@ import os
 from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
 
+"""Не получается настроить pydantic_settings так, чтобы не падала бд и эластик"""
 
 load_dotenv()
 
