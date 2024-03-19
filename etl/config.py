@@ -30,8 +30,8 @@ class ElasticsearchSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-    elasticsearch_url: str
-    elasticsearch_load_size: int
+    # elasticsearch_url: str
+    # elasticsearch_load_size: int
     parse_size: int
     updated_days_limit: int
     rerun: int

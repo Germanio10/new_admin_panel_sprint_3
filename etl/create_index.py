@@ -95,7 +95,7 @@ class CreateIndexes:
                 "dynamic": "strict",
                 "properties": {
                     "id": {"type": "keyword"},
-                    "name": {"type": "лу", "analyzer": "ru_en", "fielddata": True},
+                    "name": {"type": "text", "analyzer": "ru_en", "fielddata": True},
                 }
             }
         }
