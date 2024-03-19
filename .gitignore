@@ -1,2 +1,5 @@
-venv/
+.idea
+venv
 .env
+.data
+etl/state.json
