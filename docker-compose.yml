@@ -1,70 +1,47 @@
 version: '3'
 
 services:
-  web:
-    build: .
-    volumes:
-      - static_volume:/opt/app/static/
+  etl:
+    container_name: etl
+    restart: unless-stopped
+    build: ./etl
     env_file:
-      - ./app/config/.env
+      - .env
     depends_on:
-      - db
+      - postgres
+      - es
     networks:
       - my_network
 
-  db:
+  postgres:
     image: postgres:13
+    container_name: postgres_sprint_3
+    restart: unless-stopped
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./etc/postgres/default-init.sql:/docker-entrypoint-initdb.d/default-init.sql
-    env_file:
-      - ./app/config/.env
-    networks:
-      - my_network
-  
-  nginx:
-    container_name: nginx
-    image: nginx:alpine
-    volumes:
-      - ./etc/nginx:/etc/nginx/conf.d:ro
-      - ./data:/data/:ro
-      - static_volume:/app/static/
-      - media_volume:/app/media/
-    depends_on:
-      - web
+      - ./.data/postgres:/data/postgres
+      - ./dump.sql:/docker-entrypoint-initdb.d/dump.sql:ro
+    environment:
+      POSTGRES_DB: ${DB_NAME:-movies_database}
+      POSTGRES_USER: ${DB_USER:-app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
-      - "80:80"
+      - "5432:5432"
     networks:
       - my_network
-  
-  elasticsearch:
+
+  es:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.6.2
-    restart: always
+    container_name: es
+    restart: unless-stopped
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms4096m -Xmx4096m
     ports:
       - "9200:9200"
     networks:
       - my_network
-  
-  postgres_to_es:
-    container_name: postgres_to_es
-    build: ./postgres_to_es
-    restart: always
-    env_file:
-      - ./app/config/.env
-    depends_on:
-      - elasticsearch
-      - db
-    networks:
-      - my_network
-
-
-volumes:
-  postgres_data:
-  static_volume:
-  media_volume:
 
 networks:
   my_network:
+    external: True
